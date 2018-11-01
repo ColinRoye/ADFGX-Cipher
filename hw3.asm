@@ -16,7 +16,7 @@ get_adfgvx_coords:
 
 li $t0, 5
 bgt $a0, $t0, get_adfgvx_coords_err
-bgt $a1, $t0, get_adfgvx_coords
+bgt $a1, $t0, get_adfgvx_coords_err
 
 
 
@@ -83,8 +83,48 @@ search_adfgvx_grid:
 
 # Part III
 map_plaintext:
-li $v0, -200
-li $v1, -200
+
+map_plaintext_loop:
+lb $t0, 0($a1)
+beqz $t0, map_plaintext_over
+
+addiu $sp, $sp, -20
+sw $a0, 0($sp)
+sw $a1, 4($sp)
+sw $a2, 8($sp)
+sw $ra, 16($sp)
+lb $a1, 0($a1)
+jal search_adfgvx_grid
+
+
+
+move $a0, $v0
+move $a1, $v1
+#translate x
+jal get_adfgvx_coords
+
+
+lw $t0, 8($sp)
+sb $v0, 0($t0)
+sb $v1, 1($t0)
+
+
+
+
+
+lw $a0, 0($sp)
+lw $a1, 4($sp)
+lw $a2, 8($sp)
+lw $ra, 16($sp)
+addiu $sp, $sp, 20
+
+
+
+addiu $a1, $a1, 1
+addiu $a2, $a2, 2
+
+b map_plaintext_loop
+map_plaintext_over:
 
 jr $ra
 
