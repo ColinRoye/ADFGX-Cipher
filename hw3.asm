@@ -130,15 +130,43 @@ jr $ra
 
 # Part IV
 swap_matrix_columns:
-li $v0, -200
-li $v1, -200
+
+li $t0, 0
+addiu $sp, $sp, -4
+sw $a0, 4($sp)
+li $t0, 0
+smc_loop:
+lw $a0, 4($sp)
+
+beq $t0 , $a1, smc_loop_over
+
+mul $t1, $t0, $a2
+addu $t1, $t1, $a0
+# t1 i row
+
+#a3 is j_1
+addu $t9, $a3, $t1
+#sp is j_2
+lw $t3, 0($sp)
+addu $t2, $t3, $t1
+
+lb $t4, 0($t2)
+lb $t5, 0($t9)
+
+
+sb $t4, 0($t9)
+sb $t5, 0($t2)
+
+addiu $t0, $t0, 1
+
+b smc_loop
+smc_loop_over:
 
 jr $ra
 
 # Part V
 key_sort_matrix:
-li $v0, -200
-li $v1, -200
+
 
 jr $ra
 

@@ -7,7 +7,7 @@ main:
 la $a0, chars
 li $a1, 6
 li $a2, 4
-li $a3, 0
+li $a3, 2
 addi $sp, $sp, -4
 li $t0, 2  # 5th argument to function
 sw $t0, 0($sp)
