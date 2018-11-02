@@ -166,9 +166,129 @@ jr $ra
 
 # Part V
 key_sort_matrix:
-
+  
 
 jr $ra
+
+memcpy:
+	addiu $sp, $sp, -4
+	sw $s0, 0($sp)
+	blez $a2, memcpy_err
+	li $s0, 0
+	loop_memcpy:
+	beq $s0, $a2 loop_memcpy_over
+
+	lbu $t1, 0($a0)
+	sb $t1, 0($a1)
+
+	addiu $s0, $s0, 1
+	addiu $a0, $a0, 1
+	addiu $a1, $a1, 1
+	b loop_memcpy
+	loop_memcpy_over:
+	li $v0, 0
+	b memcpy_over
+	memcpy_err:
+	li $v0, -1
+	memcpy_over:
+	lw $s0, 0($sp)
+	addiu $sp, $sp, 4
+	jr $ra
+
+
+  sort:
+  ################save s registers
+  addiu $sp, $sp, -24
+  sw $s0, 0($sp)
+  sw $s1, 4($sp)
+  sw $s2, 8($sp)
+  sw $s5, 12($sp)
+  sw $a0, 16($sp)
+  sw $a1, 20($sp)
+
+  	li $s5, 0 #bool
+
+
+  	loop_sort:
+  	bnez $s5, loop_sort_over
+  	li $s5, 1 #bool
+
+  	li $s0, 1 #iterator
+
+  		loop_sort:
+  		addiu $t0, $s0, 1
+  		bge $t0, $a1, loop_sort_over
+  		#load i
+  		#load i+1
+  		li $s1, 0x10
+  		mul $s1, $s1, $s0
+  		addu $s1, $s1, $a0
+  		addiu $s2, $s1, 0x10
+
+  		#years
+  		lh $t1, 12($s1)##S
+  		lh $t2, 12($s2)##S
+
+  		#check condition
+  		ble $t1, $t2,	check_gt_over
+  		## if true swap
+
+
+  		addiu $sp, $sp, -40
+  		sw $s0, 16($sp)
+  		sw $s1, 20($sp)
+  		sw $s2, 24($sp)
+  		sw $a0, 28($sp)
+  		sw $a1, 32($sp)
+  		sw $ra, 36($sp)
+
+  		move $a0, $s1
+  		move $a1, $sp
+  		li $a2, 0x10
+
+  		jal memcpy
+  		lw $s0, 16($sp)
+  		lw $s1, 20($sp)
+  		lw $s2, 24($sp)
+  		lw $a0, 28($sp)
+  		lw $a1, 32($sp)
+  		lw $ra, 36($sp)
+
+  		move $a0, $s2
+  		move $a1, $s1
+  		li $a2, 0x1
+
+  		jal memcpy
+  		lw $s0, 16($sp)
+  		lw $s1, 20($sp)
+  		lw $s2, 24($sp)
+  		lw $a0, 28($sp)
+  		lw $a1, 32($sp)
+  		lw $ra, 36($sp)
+
+
+  		move $a0, $sp
+  		move $a1, $s2
+  		li $a2, 0x1
+
+  		jal memcpy
+  		lw $s0, 16($sp)
+  		lw $s1, 20($sp)
+  		lw $s2, 24($sp)
+  		lw $a0, 28($sp)
+  		lw $a1, 32($sp)
+  		lw $ra, 36($sp)
+  		addiu $sp, $sp, 40
+
+  		li $s5, 0
+  		check_gt_odd_over:
+  		#add 2
+  		addiu $s0, $s0, 1
+  		b loop_sort
+  		loop_sort_over:
+
+
+     jr $ra
 
 # Part IV
 transpose:
@@ -192,9 +312,12 @@ li $v1, -200
 jr $ra
 
 # Part IX
+
+
 string_sort:
-li $v0, -200
-li $v1, -200
+
+
+
 
 jr $ra
 
