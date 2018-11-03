@@ -1,6 +1,6 @@
 .data
 matrix1: .asciiz "ABCDEFGHIJKLMNOPQR"
-key1: .asciiz "WOLFIE"
+key1: .asciiz "babbddda"
 matrix2: .asciiz "ABCDEFGHIJKLMNOPQRST"
 key2: .word 500, 20, 100, 40, 300
 

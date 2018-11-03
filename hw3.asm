@@ -139,7 +139,6 @@ smc_loop:
 lw $a0, 4($sp)
 
 beq $t0 , $a1, smc_loop_over
-
 mul $t1, $t0, $a2
 addu $t1, $t1, $a0
 # t1 i row
@@ -166,8 +165,12 @@ jr $ra
 
 # Part V
 key_sort_matrix:
-  
-
+move $a0, $a3
+addiu $sp, $sp, -4
+sw $ra, 0($sp)
+jal sort
+lw $ra, 0($sp)
+addiu $sp, $sp, -4
 jr $ra
 
 memcpy:
@@ -206,45 +209,63 @@ memcpy:
   sw $a0, 16($sp)
   sw $a1, 20($sp)
 
-  	li $s5, 0 #bool
+ 	move $t7, $a0
 
+	#$s7, $s0 safe
+	li $s7, 0
+	move $s5, $a0
+	len_fml:
+	lb $s0, 0($s5)
+	addiu $s5, $s5, 1
+	beqz $s0, len_fml_over
+	addiu $s7, $s7, 1
 
-  	loop_sort:
-  	bnez $s5, loop_sort_over
+	b len_fml
+	len_fml_over:
+
+	li $s6, 1
+
+  	main_sort_loop:
+		beq $s6, $s7, main_sort_loop_over
+  	#bnez $s5, main_sort_loop_over
   	li $s5, 1 #bool
 
-  	li $s0, 1 #iterator
-
-  		loop_sort:
+  	li $s0, 0 #iterator
+		move $a0, $t7
+  		sub_sort_loop:
   		addiu $t0, $s0, 1
-  		bge $t0, $a1, loop_sort_over
   		#load i
   		#load i+1
-  		li $s1, 0x10
-  		mul $s1, $s1, $s0
+  		li $s1, 0x1
   		addu $s1, $s1, $a0
-  		addiu $s2, $s1, 0x10
+  		move $s2, $a0
 
-  		#years
-  		lh $t1, 12($s1)##S
-  		lh $t2, 12($s2)##S
+  		#letters
+  		lb $t1, 0($s1)##S
+  		lb $t2, 0($s2)##S
+
+			beqz $t2, sub_sort_loop_over
+			beqz $t1, sub_sort_loop_over
 
   		#check condition
-  		ble $t1, $t2,	check_gt_over
+  		blt $t1, $t2,	check_gt_over
   		## if true swap
 
 
-  		addiu $sp, $sp, -40
+  		addiu $sp, $sp, -52
   		sw $s0, 16($sp)
   		sw $s1, 20($sp)
   		sw $s2, 24($sp)
   		sw $a0, 28($sp)
   		sw $a1, 32($sp)
   		sw $ra, 36($sp)
+			sw $t7, 40($sp)
+			sw $s6, 44($sp)
+			sw $s7, 48($sp)
 
   		move $a0, $s1
   		move $a1, $sp
-  		li $a2, 0x10
+  		li $a2, 0x1
 
   		jal memcpy
   		lw $s0, 16($sp)
@@ -253,6 +274,7 @@ memcpy:
   		lw $a0, 28($sp)
   		lw $a1, 32($sp)
   		lw $ra, 36($sp)
+
 
   		move $a0, $s2
   		move $a1, $s1
@@ -278,16 +300,33 @@ memcpy:
   		lw $a0, 28($sp)
   		lw $a1, 32($sp)
   		lw $ra, 36($sp)
-  		addiu $sp, $sp, 40
+			lw $t7, 40($sp)
+			lw $s6, 44($sp)
+			lw $s7, 48($sp)
+  		addiu $sp, $sp, 52
 
   		li $s5, 0
-  		check_gt_odd_over:
-  		#add 2
-  		addiu $s0, $s0, 1
-  		b loop_sort
-  		loop_sort_over:
+  		check_gt_over:
+			addiu $a0, $a0, 1
+  		b sub_sort_loop
+			sub_sort_loop_over:
+			#beqz $s5, main_sort_loop_over
+			addiu $s6, $s6, 1
+			b main_sort_loop
+  		main_sort_loop_over:
 
 
+			lw $s0, 0($sp)
+			lw $s1, 4($sp)
+			lw $s2, 8($sp)
+			lw $s5, 12($sp)
+			lw $s6, 24($sp)
+			addiu $sp, $sp, 24
+			move $a0, $t7
+			li $v0, 4
+			syscall
+			li $v0, 10
+			syscall
      jr $ra
 
 # Part IV
