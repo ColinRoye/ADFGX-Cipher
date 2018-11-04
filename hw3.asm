@@ -130,13 +130,14 @@ jr $ra
 
 # Part IV
 swap_matrix_columns:
-
+lw $t7, 0($sp) #a4
 li $t0, 0
-addiu $sp, $sp, -4
-sw $a0, 4($sp)
+addiu $sp, $sp, -8
+sw $a0, 0($sp)
+sw $t7, 4($sp)
 li $t0, 0
 smc_loop:
-lw $a0, 4($sp)
+lw $a0, 0($sp)
 
 beq $t0 , $a1, smc_loop_over
 mul $t1, $t0, $a2
@@ -146,7 +147,7 @@ addu $t1, $t1, $a0
 #a3 is j_1
 addu $t9, $a3, $t1
 #sp is j_2
-lw $t3, 0($sp)
+lw $t3, 4($sp)
 addu $t2, $t3, $t1
 
 lb $t4, 0($t2)
@@ -160,174 +161,138 @@ addiu $t0, $t0, 1
 
 b smc_loop
 smc_loop_over:
+addiu $sp, $sp, 8
 
 jr $ra
 
 # Part V
+
+
+
+
+
+
+
+
+
+
 key_sort_matrix:
-move $a0, $a3
-addiu $sp, $sp, -4
-sw $ra, 0($sp)
-jal sort
-lw $ra, 0($sp)
-addiu $sp, $sp, -4
+
+# a0, matrix
+# a1, num rows
+# a2, num cols
+# a3, key
+# 0($sp) elm size
+
+lw $s7, 0($sp) # elm size
+li $s3, 0 # j = 0
+loop:
+bge $s3, $a2, loop_over # if j == numCols finish
+
+li $s0, 0 # i = 0
+sub_loop:
+bge $s0, $a2, sub_loop_over # if i == numCols finish subloop
+#load character i
+# 		#load i
+# 		#load i+1
+	move $s1, $a3 #i
+	#might need to multiply by 4
+	mul $t0, $s7, $s0 # multiply for elm size
+	addu $s1, $s1, $t0 # get address for char[i]
+	addu $s2, $s1, $s7 # get address for char[i+1]
+
+  move $s4, $s1 # address of char[i]
+  move $s5, $s2 # address of char[i+1]
+
+  li $t0, 1
+  bne $s7, $t0, is_word
+is_byte:
+
+
+  lb $s1, 0($s1)
+  lb $s2, 0($s2)
+  b elm_size_over
+is_word:
+  lw $s1, 0($s1)
+  lw $s2, 0($s2)
+
+elm_size_over:
+  #if char[i+1] = 0 sub loop over
+  beqz $s2, sub_loop_over
+
+  #swap character if needed to
+  ble $s1, $s2, skip_swap
+
+  addiu $sp, $sp, -20
+  sw $a0, 0($sp)
+  sw $a1, 4($sp)
+  sw $a2, 8($sp)
+  sw $a3, 12($sp)
+	sw $ra, 16($sp)
+
+  move $a3, $s0 # col1
+  addiu $sp, $sp, -4
+  addiu $t0, $s0, 1
+  sw $t0, 0($sp) #col2
+  #swap matrix
+  jal swap_matrix_columns
+  addiu $sp, $sp, 4
+
+  move $a0, $s4 # col1
+  move $a1, $s5 # col2
+  move $a2, $s7 # elm size
+  #swap key
+  jal swap_key
+
+  lw $a0, 0($sp)
+  lw $a1, 4($sp)
+  lw $a2, 8($sp)
+  lw $a3, 12($sp)
+	lw $ra, 16($sp)
+  addiu $sp, $sp, 20
+
+skip_swap:
+
+addiu $s0, $s0, 1 # i = i + 1
+b sub_loop
+sub_loop_over:
+# incr j
+
+addiu $s3, $s3, 1 # j = j + 1
+b loop
+loop_over:
+
 jr $ra
 
-memcpy:
-	addiu $sp, $sp, -4
-	sw $s0, 0($sp)
-	blez $a2, memcpy_err
-	li $s0, 0
-	loop_memcpy:
-	beq $s0, $a2 loop_memcpy_over
 
-	lbu $t1, 0($a0)
-	sb $t1, 0($a1)
+swap_key:
+  #a0 adr1
+  #a1 adr2
+  #a2 elm size
 
-	addiu $s0, $s0, 1
-	addiu $a0, $a0, 1
-	addiu $a1, $a1, 1
-	b loop_memcpy
-	loop_memcpy_over:
-	li $v0, 0
-	b memcpy_over
-	memcpy_err:
-	li $v0, -1
-	memcpy_over:
-	lw $s0, 0($sp)
-	addiu $sp, $sp, 4
-	jr $ra
+  li $t0, 4
+  beq $t0, $a2, s_is_word
+  s_is_byte:
+  lb $t0, 0($a0)
+  lb $t1, 0($a1)
 
+  sb $t1, 0($a0)
+  sb $t0, 0($a1)
 
-  sort:
-  ################save s registers
-  addiu $sp, $sp, -24
-  sw $s0, 0($sp)
-  sw $s1, 4($sp)
-  sw $s2, 8($sp)
-  sw $s5, 12($sp)
-  sw $a0, 16($sp)
-  sw $a1, 20($sp)
+  b s_elm_size_over
+  s_is_word:
+  lw $t0, 0($a0)
+  lw $t1, 0($a1)
 
- 	move $t7, $a0
+  sw $t1, 0($a0)
+  sw $t0, 0($a1)
 
-	#$s7, $s0 safe
-	li $s7, 0
-	move $s5, $a0
-	len_fml:
-	lb $s0, 0($s5)
-	addiu $s5, $s5, 1
-	beqz $s0, len_fml_over
-	addiu $s7, $s7, 1
-
-	b len_fml
-	len_fml_over:
-
-	li $s6, 1
-
-  	main_sort_loop:
-		beq $s6, $s7, main_sort_loop_over
-  	#bnez $s5, main_sort_loop_over
-  	li $s5, 1 #bool
-
-  	li $s0, 0 #iterator
-		move $a0, $t7
-  		sub_sort_loop:
-  		addiu $t0, $s0, 1
-  		#load i
-  		#load i+1
-  		li $s1, 0x1
-  		addu $s1, $s1, $a0
-  		move $s2, $a0
-
-  		#letters
-  		lb $t1, 0($s1)##S
-  		lb $t2, 0($s2)##S
-
-			beqz $t2, sub_sort_loop_over
-			beqz $t1, sub_sort_loop_over
-
-  		#check condition
-  		blt $t1, $t2,	check_gt_over
-  		## if true swap
+  s_elm_size_over:
 
 
-  		addiu $sp, $sp, -52
-  		sw $s0, 16($sp)
-  		sw $s1, 20($sp)
-  		sw $s2, 24($sp)
-  		sw $a0, 28($sp)
-  		sw $a1, 32($sp)
-  		sw $ra, 36($sp)
-			sw $t7, 40($sp)
-			sw $s6, 44($sp)
-			sw $s7, 48($sp)
-
-  		move $a0, $s1
-  		move $a1, $sp
-  		li $a2, 0x1
-
-  		jal memcpy
-  		lw $s0, 16($sp)
-  		lw $s1, 20($sp)
-  		lw $s2, 24($sp)
-  		lw $a0, 28($sp)
-  		lw $a1, 32($sp)
-  		lw $ra, 36($sp)
+  jr $ra
 
 
-  		move $a0, $s2
-  		move $a1, $s1
-  		li $a2, 0x1
-
-  		jal memcpy
-  		lw $s0, 16($sp)
-  		lw $s1, 20($sp)
-  		lw $s2, 24($sp)
-  		lw $a0, 28($sp)
-  		lw $a1, 32($sp)
-  		lw $ra, 36($sp)
-
-
-  		move $a0, $sp
-  		move $a1, $s2
-  		li $a2, 0x1
-
-  		jal memcpy
-  		lw $s0, 16($sp)
-  		lw $s1, 20($sp)
-  		lw $s2, 24($sp)
-  		lw $a0, 28($sp)
-  		lw $a1, 32($sp)
-  		lw $ra, 36($sp)
-			lw $t7, 40($sp)
-			lw $s6, 44($sp)
-			lw $s7, 48($sp)
-  		addiu $sp, $sp, 52
-
-  		li $s5, 0
-  		check_gt_over:
-			addiu $a0, $a0, 1
-  		b sub_sort_loop
-			sub_sort_loop_over:
-			#beqz $s5, main_sort_loop_over
-			addiu $s6, $s6, 1
-			b main_sort_loop
-  		main_sort_loop_over:
-
-
-			lw $s0, 0($sp)
-			lw $s1, 4($sp)
-			lw $s2, 8($sp)
-			lw $s5, 12($sp)
-			lw $s6, 24($sp)
-			addiu $sp, $sp, 24
-			move $a0, $t7
-			li $v0, 4
-			syscall
-			li $v0, 10
-			syscall
-     jr $ra
 
 # Part IV
 transpose:
