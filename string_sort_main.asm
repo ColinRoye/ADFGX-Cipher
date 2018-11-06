@@ -1,5 +1,5 @@
 .data
-str: .asciiz "STONYBROOKUNIVERSITY"
+str: .asciiz "KNIGHTS"
 
 .text
 .globl main

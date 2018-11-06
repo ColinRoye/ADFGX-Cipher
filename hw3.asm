@@ -318,6 +318,9 @@ swap_key:
 
 # Part IV
 transpose:
+	addiu $sp, $sp, -8
+	sw $s0, 0($sp)
+	sw $s3, 4($sp)
 	#s0 = iterator
 	#if iterator = num row
 	li $s3, 0
@@ -340,8 +343,10 @@ transpose:
 
 	b loop_tr
 	loop_tr_over:
-
-
+	#return vals s regs
+	lw $s0, 0($sp)
+	lw $s3, 4($sp)
+	addiu $sp, $sp, 8
 
 jr $ra
 
@@ -383,14 +388,6 @@ jal map_plaintext
 
 
 
-# lw $a0, 20($sp)
-# li $v0, 4
-# syscall
-# li $v0, 10
-# syscall
-
-
-
 lw $a0, 20($sp)
 jal len
 move $s1, $v0
@@ -416,12 +413,10 @@ move $a3, $s2
 sw $a2, 24($sp)
 sw $a3, 28($sp)
 
-# jal transpose
 
 
 
 
-# jal transpose
 lw $a0, 20($sp)
 lw $a1, 24($sp)
 lw $a2, 28($sp)
@@ -440,22 +435,13 @@ lw $a3, 28($sp)
 
 jal transpose
 
-
-# lw $a0, 12($sp)
-#
-# lw $a2, 24($sp)
-# lw $a3, 28($sp)
-# #mul $t0, $a2, $a3
-# #addu $a0, $a0, $t0
-# li $t0, 0
-# sb $t0, 0($a2)
 lw $a1, 12($sp)
- lw $a2, 24($sp)
- lw $a3, 28($sp)
- mul $t0, $a2, $a3
- addu $a1, $a1, $t0
- li $t0, 0
- sb $t0, 0($a1)
+lw $a2, 24($sp)
+lw $a3, 28($sp)
+mul $t0, $a2, $a3
+addu $a1, $a1, $t0
+li $t0, 0
+sb $t0, 0($a1)
 
 lw $ra, 16($sp)
 addiu $sp, $sp, 28
@@ -480,8 +466,7 @@ jr $ra
 
 # Part VIII
 lookup_char:
-li $v0, -200
-li $v1, -200
+
 
 jr $ra
 
@@ -490,10 +475,89 @@ jr $ra
 
 string_sort:
 
+addiu $sp, $sp, -32
+sw $s0, 0($sp)
+sw $s1, 4($sp)
+sw $s2, 8($sp)
+sw $s3, 12($sp)
+sw $s4, 16($sp)
+sw $s5, 20($sp)
+sw $s7, 24($sp)
+sw $ra, 28($sp)
 
+
+
+li $s3, 0 # j = 0
+loop_str:
+li $s0, 0 # i = 0
+
+addu $t0, $s3, $a0
+lb $t0 0($t0)
+beqz $t0, loop_over_str
+sub_loop_str:
+
+
+	#might need to multiply by 4
+
+	addu $s1, $a0, $s0 # get address for char[i]
+	li $t0, 1
+	addu $s2, $s1, $t0 # get address for char[i+1]
+
+
+  lb $t0, 0($s1)
+  lb $t1, 0($s2)
+
+  #if char[i+1] = 0 sub loop over
+  beqz $t1, sub_loop_over_str
+
+  #swap character if needed to
+  ble $t0, $t1, skip_swap_str
+
+  addiu $sp, $sp, -20
+  sw $a0, 0($sp)
+  sw $a1, 4($sp)
+  sw $a2, 8($sp)
+  sw $a3, 12($sp)
+	sw $ra, 16($sp)
+	#ra??
+  move $a0, $s1 # col1
+  move $a1, $s2 # col2
+	li $t0, 1
+  move $a2, $t0 # elm size
+  #swap key
+  jal swap_key
+  lw $a0, 0($sp)
+  lw $a1, 4($sp)
+  lw $a2, 8($sp)
+  lw $a3, 12($sp)
+	lw $ra, 16($sp)
+  addiu $sp, $sp, 20
+
+skip_swap_str:
+addiu $s0, $s0, 1 # i = i + 1
+b sub_loop_str
+sub_loop_over_str:
+# incr j
+addiu $s3, $s3, 1 # j = j + 1
+b loop_str
+loop_over_str:
+
+
+
+lw $s0, 0($sp)
+lw $s1, 4($sp)
+lw $s2, 8($sp)
+lw $s3, 12($sp)
+lw $s4, 16($sp)
+lw $s5, 20($sp)
+lw $s7, 24($sp)
+lw $ra, 28($sp)
+addiu $sp, $sp, 32
 
 
 jr $ra
+
+
 
 # Part X
 decrypt:
