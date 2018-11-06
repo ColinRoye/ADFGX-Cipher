@@ -25,8 +25,7 @@ li $v0, 11
 syscall
 
 
-li $v0, 10
-syscall
+
 
 la $a0, matrix2
 li $a1, 4
@@ -38,12 +37,15 @@ sw $t0, 0($sp)
 jal key_sort_matrix
 addi $sp, $sp, 4
 
-la $a0, key1
+la $a0, matrix2
 li $v0, 4
 syscall
 li $a0, '\n'
 li $v0, 11
 syscall
-
-
+li $v0, 10
+syscall 
 .include "hw3.asm"
+
+
+

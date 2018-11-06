@@ -97,7 +97,7 @@ lb $a1, 0($a1)
 jal search_adfgvx_grid
 
 
-
+#jr ra?????
 move $a0, $v0
 move $a1, $v1
 #translate x
@@ -183,8 +183,18 @@ key_sort_matrix:
 # a2, num cols
 # a3, key
 # 0($sp) elm size
+addiu $sp, $sp, -32
+sw $s0, 0($sp)
+sw $s1, 4($sp)
+sw $s2, 8($sp)
+sw $s3, 12($sp)
+sw $s4, 16($sp)
+sw $s5, 20($sp)
+sw $s7, 24($sp)
+sw $ra, 28($sp)
 
-lw $s7, 0($sp) # elm size
+
+lw $s7, 32($sp) # elm size
 li $s3, 0 # j = 0
 loop:
 bge $s3, $a2, loop_over # if j == numCols finish
@@ -237,7 +247,7 @@ elm_size_over:
   #swap matrix
   jal swap_matrix_columns
   addiu $sp, $sp, 4
-
+	#ra??
   move $a0, $s4 # col1
   move $a1, $s5 # col2
   move $a2, $s7 # elm size
@@ -261,6 +271,18 @@ sub_loop_over:
 addiu $s3, $s3, 1 # j = j + 1
 b loop
 loop_over:
+
+
+
+lw $s0, 0($sp)
+lw $s1, 4($sp)
+lw $s2, 8($sp)
+lw $s3, 12($sp)
+lw $s4, 16($sp)
+lw $s5, 20($sp)
+lw $s7, 24($sp)
+lw $ra, 28($sp)
+addiu $sp, $sp, 32
 
 jr $ra
 
@@ -296,17 +318,165 @@ swap_key:
 
 # Part IV
 transpose:
-li $v0, -200
-li $v1, -200
+	#s0 = iterator
+	#if iterator = num row
+	li $s3, 0
+	loop_tr:
+	li $s0, 0
+	beq $s3, $a3, loop_tr_over #num col
+	sub_loop_tr:
+	beq $s0, $a2, sub_loop_tr_over #num row
+	mul $t0, $a3, $s0
+	addu $t0, $t0, $a0
+	addu $t0, $t0, $s3
+	lb $t0, 0($t0)
+	sb $t0, 0($a1)
+	addiu $s0, $s0, 1
+
+	addiu $a1, $a1, 1
+	b sub_loop_tr
+	sub_loop_tr_over:
+	addiu $s3, $s3, 1
+
+	b loop_tr
+	loop_tr_over:
+
+
 
 jr $ra
 
 # Part VII
 encrypt:
-li $v0, -200
-li $v1, -200
+#allocate memory for map plain text
+
+#map plain text for every elm in adfgvx_grid
+addiu $sp, $sp, -32
+sw $a0, 0($sp)
+sw $a1, 4($sp)
+sw $a2, 8($sp)
+sw $a3, 12($sp)
+sw $ra, 16($sp)
+
+li $a0, 56
+li $v0, 9
+syscall
+
+li $t0, 0
+li $t1, '*'
+li $t3, 55
+move $t4, $v0
+loop_star:
+addiu $t0, $t0, 1
+beq $t0, $t3, loop_star_over
+sb $t1, 0($t4)
+addiu $t4, $t4, 1
+
+b loop_star
+loop_star_over:
+
+
+sw $v0, 20($sp)
+
+lw $a0, 0($sp)
+move $a2, $v0
+jal map_plaintext
+
+
+
+# lw $a0, 20($sp)
+# li $v0, 4
+# syscall
+# li $v0, 10
+# syscall
+
+
+
+lw $a0, 20($sp)
+jal len
+move $s1, $v0
+
+
+lw $a0, 8($sp)
+jal len
+move $s2, $v0
+
+lw $a0, 20($sp)
+lw $a1, 12($sp)
+div $s1, $s2
+mflo $a2
+mfhi $t0
+beqz $t0, skip_add
+addiu $a2, $a2, 1
+skip_add:
+
+
+
+move $a3, $s2
+
+sw $a2, 24($sp)
+sw $a3, 28($sp)
+
+# jal transpose
+
+
+
+
+# jal transpose
+lw $a0, 20($sp)
+lw $a1, 24($sp)
+lw $a2, 28($sp)
+lw $a3, 8($sp)
+addiu $sp, $sp, -4
+li $t0, 1
+sw $t0, 0($sp)
+jal key_sort_matrix
+addiu $sp, $sp, 4
+
+lw $a0, 20($sp)
+lw $a1, 12($sp)
+lw $a2, 24($sp)
+lw $a3, 28($sp)
+
+
+jal transpose
+
+
+# lw $a0, 12($sp)
+#
+# lw $a2, 24($sp)
+# lw $a3, 28($sp)
+# #mul $t0, $a2, $a3
+# #addu $a0, $a0, $t0
+# li $t0, 0
+# sb $t0, 0($a2)
+lw $a1, 12($sp)
+ lw $a2, 24($sp)
+ lw $a3, 28($sp)
+ mul $t0, $a2, $a3
+ addu $a1, $a1, $t0
+ li $t0, 0
+ sb $t0, 0($a1)
+
+lw $ra, 16($sp)
+addiu $sp, $sp, 28
+
+
 
 jr $ra
+
+len:
+li $v0, 0
+li $t1, '*'
+len_loop:
+lb $t0, 0($a0)
+beqz $t0, len_loop_over
+beq $t0, $t1, len_loop_over
+addiu $v0, $v0, 1
+addiu $a0, $a0, 1
+b len_loop
+len_loop_over:
+jr $ra
+
 
 # Part VIII
 lookup_char:

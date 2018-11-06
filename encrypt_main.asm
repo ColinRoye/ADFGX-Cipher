@@ -42,4 +42,6 @@ syscall
 li $v0, 10
 syscall
 
+
+
 .include "hw3.asm"
