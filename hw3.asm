@@ -201,7 +201,8 @@ bge $s3, $a2, loop_over # if j == numCols finish
 
 li $s0, 0 # i = 0
 sub_loop:
-bge $s0, $a2, sub_loop_over # if i == numCols finish subloop
+addiu $t0, $s0, 1
+bge $t0, $a2, sub_loop_over # if i == numCols finish subloop
 #load character i
 # 		#load i
 # 		#load i+1
@@ -228,7 +229,7 @@ is_word:
 
 elm_size_over:
   #if char[i+1] = 0 sub loop over
-  beqz $s2, sub_loop_over
+  beq $s0, $a2 sub_loop_over
 
   #swap character if needed to
   ble $s1, $s2, skip_swap
@@ -466,9 +467,73 @@ jr $ra
 
 # Part VIII
 lookup_char:
+addiu $sp, $sp, -8
+sw $s0, 0($sp)
+sw $s1, 4($sp)
+
+li $s0, 0
+li $t0, 'A'
+beq $a1, $t0, row_over
+li $s0, 1
+li $t0, 'D'
+beq $a1, $t0, row_over
+li $s0, 2
+li $t0, 'F'
+beq $a1, $t0, row_over
+li $s0, 3
+li $t0, 'G'
+beq $a1, $t0, row_over
+li $s0, 4
+li $t0, 'V'
+beq $a1, $t0, row_over
+li $s0, 5
+li $t0, 'X'
+beq $a1, $t0, row_over
+b char_err
+row_over:
+
+
+li $s1, 0
+li $t0, 'A'
+beq $a2, $t0, col_over
+li $s1, 1
+li $t0, 'D'
+beq $a2, $t0, col_over
+li $s1, 2
+li $t0, 'F'
+beq $a2, $t0, col_over
+li $s1, 3
+li $t0, 'G'
+beq $a2, $t0, col_over
+li $s1, 4
+li $t0, 'V'
+beq $a2, $t0, col_over
+li $s1, 5
+li $t0, 'X'
+beq $a2, $t0, col_over
+b char_err
+col_over:
+li $t0, 6
+mul $t0, $t0, $s0
+addu $t0, $t0, $s1
+addu $t0, $t0, $a0
+
+lb $v1, 0($t0)
+
+b char_err_over
+char_err:
+li $v0, -1
+li $v1, -1
+char_err_over:
+
+lw $s0, 0($sp)
+lw $s1, 4($sp)
+addiu $sp, $sp, 8
 
 
 jr $ra
+
+
 
 # Part IX
 
@@ -487,7 +552,7 @@ sw $ra, 28($sp)
 
 
 
-li $s3, 0 # j = 0
+li $s3, 0 # j =a2
 loop_str:
 li $s0, 0 # i = 0
 
@@ -561,10 +626,178 @@ jr $ra
 
 # Part X
 decrypt:
-li $v0, -200
-li $v1, -200
+
+move $t1, $a2
+li $t0, 0
+len_k_dc:
+addu $t2, $t1, $t0
+lb $t2, 0($t2)
+beqz $t2, len_k_dc_over
+addiu $t0, $t0, 1
+b len_k_dc
+len_k_dc_over:
+
+move $a0, $t0
+addiu $a0, $a0, 1
+move $t5, $a0
+li $v0, 9
+syscall
+move $a0, $t5
+
+# move $t5, $a0
+# li $v0, 9
+# syscall
+# move $s1, $v0 #arr 0-n
+
+
+move $s3, $t0 #len
+cpy_key:
+addu $t1, $t0, $a2
+addu $t2, $v0, $t0
+lb $t3, 0($t1)
+sb $t3, 0($t2)
+blez $t0, cpy_key_over
+addiu $t0, $t0, -1
+b cpy_key
+cpy_key_over:
+move $s0, $v0 #unsrted
+
+move $t5, $a0
+li $t5, 4
+mul $a0, $a0, $t5
+li $v0, 9
+syscall
+move $s1, $v0 #arr 0-n
+
+addiu $sp, $sp, -20
+sw $a0, 0($sp)
+sw $a1, 4($sp)
+sw $a2, 8($sp)
+sw $a3, 12($sp)
+sw $ra, 16($sp)
+move $a0, $a2
+jal string_sort
+
+
+
+
+li $s5, 0
+mk_arr:
+lw $a0, 8($sp)
+beq $s3, $s5, mk_arr_over
+addu $a1, $s5, $a0
+lb $a1, 0($a1) #a0
+beqz $a1, mk_arr_over
+move $a0, $s0
+#addu $a0, $s0, $s5
+
+# addiu $s5, $s5, 1
+jal index_of
+li $t1, 4
+mul $t1, $t1, $s5
+addu $t0, $s1, $t1
+sw $v0, 0($t0)
+addiu $s5, $s5, 1
+
+b mk_arr
+mk_arr_over:
+
+lw $a0, 0($sp)
+lw $a1, 4($sp)
+lw $a2, 8($sp)
+lw $a3, 12($sp)
+addiu $sp, $sp, 20
+
+#move  $a0, $a1
+
+#a1 = arr of shit
+#s0 = arr of int
+
+move $t1, $a1
+li $t0, 0
+len_arr_dc:
+addu $t2, $t1, $t0
+lb $t2, 0($t2)
+beqz $t2, len_arr_dc_over
+addiu $t0, $t0, 1
+b len_arr_dc
+len_arr_dc_over:
+
+
+li $v0, 9
+move $a0, $t0
+addiu $a0, $a0, 1
+syscall
+move $a0, $a1
+
+move $s2, $v0
+move $a1, $v0
+
+move $a2, $s3
+
+div $t0, $s3
+mflo $a3
+
+
+addiu $sp, $sp, -8
+sw $ra, 0($sp)
+sw $a3, 4($sp)
+jal transpose
+lw $ra, 0($sp)
+lw $a3, 4($sp)
+addiu $sp, $sp, 8
+
+move $a0, $s2
+move $a2, $s3
+move $a1, $a3
+# div $t0, $s3
+# mflo $a2
+
+move $a3, $s1
+
+addiu $sp, $sp, -4
+li $t0, 4 #fix
+sw $t0, 0($sp)
+jal key_sort_matrix
+addiu $sp, $sp, 4
+
+move $a0, $s2
+li $v0, 4
+syscall
+li $v0, 10
+syscall
+
+
+
+#allocate memory for keyword
+#sort heap keyword
+#allocate memory for
+
+#allocate memory arr the length of the key
+
+
+
 
 jr $ra
+
+
+index_of:
+################save s registers
+	li $t1, 0
+	loop_ind_of_2:
+	lbu $t0, 0($a0)
+	beq $t0, $a1, loop_ind_of_over_2
+
+
+	addiu $t1, $t1, 1
+	addiu $a0, $a0, 1
+	b loop_ind_of_2
+	loop_ind_of_over_2:
+	move $v0, $t1
+
+	################save s registers
+
+	jr $ra
 
 #####################################################################
 ############### DO NOT CREATE A .data SECTION! ######################
